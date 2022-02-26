@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1640640862 source:c:\users\muhammad taimoor j\documents\codeblock\mazegame\main.c
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+

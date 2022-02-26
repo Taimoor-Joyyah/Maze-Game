@@ -1,0 +1,248 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define FRAME_SIZE 64 //Adjust Max Frame size
+#define CHARACTER 1 //Define character symbol
+#define MAPS_COUNT 2 //Define Amount of Available Maps
+
+void Note();
+char Menu();
+void SelectMap(); //select map among available
+void Play(int frame[FRAME_SIZE][FRAME_SIZE], int mapatt[6], int MapNum); //play game after selecting map
+void EndScore(int Score, int MapNum); //display and write the resulting score to datafile after playing game
+void Scoreboard(); //read and display scores of alltime
+void About();
+void cls();
+void Frame_Display(int frame[FRAME_SIZE][FRAME_SIZE], int yr, int xr);
+void Get_Map(int frame[FRAME_SIZE][FRAME_SIZE], int mapatt[6], int MapNum);
+
+void main() {
+    int MenuOpt;
+
+    Note();
+
+    do {
+        MenuOpt = Menu();
+
+        switch(MenuOpt) {
+            case '1':
+                SelectMap();
+                break;
+            case '2':
+                Scoreboard();
+                break;
+            case '3':
+                About();
+                break;
+        }
+    } while(MenuOpt != '4');
+}
+//Display a Note on the Start of Program
+void Note() {
+    printf("\t\nNOTE!\n");
+    //.........Note
+    printf("\tPress Any Key to Continue...");
+    getch();
+    cls();
+}
+//Display the game menu and return selected option
+char Menu() {
+    printf("\t MAZE GAME\n\n");
+    printf("\t1.\t  Start\n");
+    printf("\t2.\tScoreBoard\n");
+    printf("\t3.\t  About\n");
+    printf("\t4.\t  Exit\n");
+    printf("\nSelect Option.");
+
+    char key;
+    do {
+        key = getch();
+    } while(key < '1' || key > '4');
+    cls();
+    return key;
+}
+//Select map from available
+void SelectMap() {
+    int MazeFrame[FRAME_SIZE][FRAME_SIZE];
+    int mapattribute[6];//{y_range, x_range, Start_y, Start_x, End_y, End_x}
+    int MapNo = 1;
+
+    char key;
+
+    while(key != 'w' && key != 'W') {
+        printf("\tSELECT MAP\n");
+        printf("\tMap No. %d\n", MapNo);
+        printf("Press S for Next Map, Press W to Select and Press ESC to Back to Menu\n\n");
+        Get_Map(MazeFrame, mapattribute, MapNo);
+        Frame_Display(MazeFrame, mapattribute[0], mapattribute[1]);
+        printf("\n");
+        do {
+            key = getch();
+        } while(key != 27 && key != 'W' && key != 'S' && key != 'w' && key != 's');
+        if(key == 27) {
+            cls();
+            return;
+        }
+        else if(key == 's' || key == 'S') {
+            if(MapNo != MAPS_COUNT)
+                MapNo++;
+            else
+                MapNo = 1;
+        cls();
+        }
+    }
+    cls();
+    Play(MazeFrame, mapattribute, MapNo);
+}
+//Play Game
+void Play(int frame[FRAME_SIZE][FRAME_SIZE], int mapatt[6], int MapNum) {
+    int y_range, x_range;
+    int y_pos, x_pos, c_pos;
+    int score;
+
+    frame[mapatt[2]][mapatt[3]] = CHARACTER; //start character
+    frame[mapatt[4]][mapatt[5]] = 20; //end point
+    y_pos = mapatt[2], x_pos = mapatt[3], c_pos = -1;
+
+    do {
+        if(c_pos != y_pos * mapatt[1] + x_pos) {
+            cls();
+            Frame_Display(frame, mapatt[0], mapatt[1]); //[0] y_range, [1] x_range
+        }
+        c_pos = y_pos * mapatt[1] + x_pos;
+        //Control Movement of the character
+        switch(getch()) {
+            case 'w':
+            case 'W':
+                if(frame[y_pos-1][x_pos] != '1') {
+                    frame[y_pos][x_pos] = 176;
+                    frame[--y_pos][x_pos] = CHARACTER;
+                }
+                break;
+            case 's':
+            case 'S':
+                if(frame[y_pos+1][x_pos] != '1') {
+                    frame[y_pos][x_pos] = 176;
+                    frame[++y_pos][x_pos] = CHARACTER;
+                }
+                break;
+            case 'a':
+            case 'A':
+                if(frame[y_pos][x_pos-1] != '1') {
+                    frame[y_pos][x_pos] = 176;
+                    frame[y_pos][--x_pos] = CHARACTER;
+                }
+                break;
+            case 'd':
+            case 'D':
+                if(frame[y_pos][x_pos+1] != '1') {
+                    frame[y_pos][x_pos] = 176;
+                    frame[y_pos][++x_pos] = CHARACTER;
+                }
+                break;
+            case 27:
+                cls();
+                return;
+        }
+    } while((y_pos != mapatt[4]) || (x_pos != mapatt[5]));
+    cls();
+    score = 1000;
+    EndScore(score, MapNum);
+}
+//Display About info of Game
+void About() {
+    printf("\t\nABOUT Game!\n");
+    //.........About
+    printf("\tPress Any Key to Continue...");
+    getch();
+    cls();
+}
+//Display End Score and write them to scoreboard
+void EndScore(int Score, int MapNum) {
+    printf("\n\tSCORE\n");
+    printf("\t%d\n", Score);
+    printf("\n\tMap No. %d\n", MapNum);
+    //write scoreboard.dat
+    FILE *scoreboard;
+    scoreboard = fopen("scoreboard.dat", "a");
+    fprintf(scoreboard, "-%2d_%4d\0", MapNum, Score);
+    fclose(scoreboard);
+
+    printf("\nPress Any Key To Continue...");
+    getch();
+    cls();
+}
+//Display the Scoreboard of alltime
+void Scoreboard() {
+    int score[64][2];
+    int i, j;
+    FILE *readscore;
+    readscore = fopen("scoreboard.dat", "r");
+
+    printf("\n\tSCOREBOARD\n\n");
+    for(i = 0; !feof(readscore); i++)
+        fscanf(readscore, "-%2d_%4d", &score[i][0], &score[i][1]);
+    for(j = 1; j <= i-1; j++)
+        printf("%2d. Map %2d - Score : %4d\n", j+1, score[i-j-1][0], score[i-j-1][1]);
+
+    printf("\nPress Any key to continue...");
+    getch();
+    cls();
+}
+//clear screen
+void cls() {
+  system("cls");
+}
+//Print Frame on Console
+void Frame_Display(int frame[FRAME_SIZE][FRAME_SIZE], int yr, int xr) {
+    for(int y = 0; y <= yr - 1; y++) {
+        for(int x = 0; x <= xr - 1; x++) {
+            if(frame[y][x] == '1')
+                printf("%c", 178);
+            else if(frame[y][x] == '0')
+                printf("%c", 176);
+            else
+                printf("%c", frame[y][x]);
+        }
+        printf("\n");
+    }
+}
+//Get Map data from file
+void Get_Map(int frame[FRAME_SIZE][FRAME_SIZE], int mapatt[6], int MapNum) {
+    int ch[2];
+    char MFileN[9] = {'m', 'a', 'p', MapNum + '0', '.', 'd', 'a', 't', 0};
+    FILE *mapdata;
+    if((mapdata = fopen(MFileN, "r")) == NULL) {
+        printf("\nFile Cannot Be Opened OR Selected2 Map is not Available\n");
+        printf("press any key to exit.");
+        getch();
+        exit(0);
+        //_Exit(0);
+    }
+    fgets(ch, 4, mapdata); mapatt[0] = atoi(ch);
+    fgets(ch, 4, mapdata); mapatt[1] = atoi(ch);
+    fgets(ch, 4, mapdata); mapatt[2] = atoi(ch);
+    fgets(ch, 4, mapdata); mapatt[3] = atoi(ch);
+    fgets(ch, 4, mapdata); mapatt[4] = atoi(ch);
+    fgets(ch, 4, mapdata); mapatt[5] = atoi(ch);
+    for(int y = 0; y <= mapatt[0] - 1; y++)
+        for(int x = 0; x <= mapatt[1] - 1; x++)
+            frame[y][x] = fgetc(mapdata);
+}
+
+/*8 for backspace \b, 13 for start of current line \r, 10 for endofline and to next line \n, */
+/*219, 176, 177, 178 for frame background*/
+/*58 for pipe represent*/
+/*1, 2 for character*/
+/*3-6 food*/
+/*0, 32 for blank space*/
+/*31 end symbol*/
+
+/*Press key to change character. Press key to change background*/
+
+/*
+SLECT MAP     ->  Select Map -> Play
+SCOREBOARD  -> read score.dat
+ABOUT -> info how to play game and info about keys (press s to move cursor/change map, w to select, q to exit)
+EXIT
+*/
